@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#123c5e">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="stylesheet" href="./pwa.css">
+<title>照度計算（ルーメン法） | 電気・設備の計算ツール集</title>
+<meta name="description" content="ルーメン法で必要総光束とLED照明の必要台数を計算します。目標照度と床面積を入力するだけです。">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #1f2933; background: #f6f7f9; line-height: 1.7; }
+  header { background: #123c5e; color: #fff; padding: 28px 20px; }
+  header .wrap, main { max-width: 760px; margin: 0 auto; }
+  header a { color: #bcd6ea; font-size: .85rem; text-decoration: none; }
+  header h1 { font-size: 1.35rem; margin-top: 6px; }
+  main { padding: 24px 16px 44px; }
+  .panel { background: #fff; border: 1px solid #dde3e8; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+  .panel h2 { font-size: 1.02rem; margin-bottom: 12px; }
+  label { display: block; font-size: .88rem; font-weight: 600; margin: 14px 0 5px; }
+  label:first-of-type { margin-top: 0; }
+  input, select { width: 100%; padding: 11px; font-size: 1rem; border: 1px solid #bcccdc; border-radius: 8px; background: #fff; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .unit { font-size: .8rem; color: #627d98; font-weight: 400; }
+  .hint { font-size: .8rem; color: #627d98; margin-top: 4px; }
+  button { width: 100%; margin-top: 20px; background: #e07b39; color: #fff; border: none; padding: 13px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #c9662a; }
+  .result { display: none; background: #eaf4ec; border: 1px solid #9fc7a8; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .result.show { display: block; }
+  .result .big { font-size: 1.7rem; font-weight: 800; color: #14532d; }
+  .result dl { margin-top: 8px; font-size: .95rem; }
+  .result dt { display: inline; font-weight: 600; }
+  .result dd { display: inline; margin-right: 16px; }
+  .formula-box { background: #f0f4f8; border-radius: 8px; padding: 12px 14px; font-size: .92rem; margin-bottom: 10px; }
+  p, li { font-size: .9rem; color: #3e4c59; }
+  ul { padding-left: 1.2em; }
+  .note { background: #fff8e6; border: 1px solid #f0d48a; border-radius: 10px; padding: 14px 16px; font-size: .88rem; }
+  .error { color: #b42318; font-size: .88rem; margin-top: 10px; display: none; }
+  footer { text-align: center; color: #829ab1; font-size: .8rem; padding: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="./index.html">← ツール一覧へ戻る</a>
+    <h1>照度計算（ルーメン法）</h1>
+    <button type="button" id="gloveToggle" class="glove-toggle" aria-pressed="false">🧤 手袋モード: OFF</button>
+  </div>
+</header>
+<main>
+  <div class="panel">
+    <h2>入力</h2>
+    <label for="use">用途（目標照度の目安）</label>
+    <select id="use">
+      <option value="750" selected>事務所（750 lx）</option>
+      <option value="500">会議室（500 lx）</option>
+      <option value="500">教室（500 lx）</option>
+      <option value="200">倉庫（200 lx）</option>
+      <option value="300">住宅居室（300 lx）</option>
+      <option value="custom">カスタム（下の数値を直接入力）</option>
+    </select>
+
+    <label for="illuminance">目標照度 E <span class="unit">[lx]</span></label>
+    <input type="number" id="illuminance" inputmode="decimal" min="0" step="any" value="750">
+
+    <div class="row">
+      <div>
+        <label for="roomW">部屋の縦 <span class="unit">[m]（任意）</span></label>
+        <input type="number" id="roomW" inputmode="decimal" min="0" step="any" placeholder="例：10">
+      </div>
+      <div>
+        <label for="roomD">部屋の横 <span class="unit">[m]（任意）</span></label>
+        <input type="number" id="roomD" inputmode="decimal" min="0" step="any" placeholder="例：10">
+      </div>
+    </div>
+    <p class="hint">縦 × 横を両方入れると、下の床面積に自動で反映されます。</p>
+
+    <label for="area">床面積 S <span class="unit">[m²]</span></label>
+    <input type="number" id="area" inputmode="decimal" min="0" step="any" value="100">
+
+    <div class="row">
+      <div>
+        <label for="util">照明率 U</label>
+        <input type="number" id="util" inputmode="decimal" min="0" max="1" step="any" value="0.6">
+      </div>
+      <div>
+        <label for="maint">保守率 M</label>
+        <input type="number" id="maint" inputmode="decimal" min="0" max="1" step="any" value="0.8">
+      </div>
+    </div>
+
+    <label for="flux">LED照明1台の光束 <span class="unit">[lm/台]</span></label>
+    <input type="number" id="flux" inputmode="decimal" min="0" step="any" value="4000">
+
+    <p class="error" id="error">入力値を確認してください（各項目に0より大きい数値を入れてください。照明率・保守率は1以下です）。</p>
+    <button type="button" id="calc">計算する</button>
+  </div>
+
+  <div class="result" id="result" aria-live="polite">
+    <div>必要台数（LED照明）</div>
+    <div class="big"><span id="count">–</span> 台</div>
+    <dl>
+      <dt>必要総光束：</dt><dd><span id="totalFlux">–</span> lm</dd>
+      <dt>台数の計算値：</dt><dd><span id="countRaw">–</span> 台（切り上げ前）</dd>
+    </dl>
+  </div>
+
+  <div class="panel">
+    <h2>計算式の説明</h2>
+    <div class="formula-box">必要総光束 F = (E × S) / (U × M) [lm]</div>
+    <div class="formula-box">必要台数 N = F / （照明1台の光束）　※ 端数は切り上げ</div>
+    <ul>
+      <li>E：目標照度 [lx]、S：床面積 [m²]、U：照明率、M：保守率</li>
+      <li>ルーメン法は、部屋全体の平均照度を見積もる簡易な方法です。照明率 U は器具の配光や部屋の形状・内装の反射率で変わり、保守率 M は汚れや光源の経年低下を見込む係数です。</li>
+      <li>用途別の照度はあくまで代表的な目安値です。適用すべき照度基準は用途や規格で確認してください。</li>
+      <li>均一な明るさには台数だけでなく配置（レイアウト）も重要です。本計算は台数の目安のみを求めるものです。</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <strong>ご注意：</strong>これは<strong>参考計算</strong>です。実務は最新の規格・メーカー資料で確認してください。実際の設計では、器具ごとの配光データを使った照度分布計算や、まぶしさ（グレア）の確認も必要です。
+  </div>
+</main>
+<footer>参考計算です。実務は最新の規格・メーカー資料で確認してください。</footer>
+<script>
+(function () {
+  var useEl = document.getElementById('use');
+  var eEl = document.getElementById('illuminance');
+  useEl.addEventListener('change', function () {
+    if (useEl.value !== 'custom') { eEl.value = useEl.value; }
+    else { eEl.focus(); }
+  });
+  eEl.addEventListener('input', function () {
+    var match = false;
+    for (var i = 0; i < useEl.options.length; i++) {
+      if (useEl.options[i].value === eEl.value) { useEl.selectedIndex = i; match = true; break; }
+    }
+    if (!match) { useEl.value = 'custom'; }
+  });
+  function syncArea() {
+    var w = parseFloat(document.getElementById('roomW').value);
+    var d = parseFloat(document.getElementById('roomD').value);
+    if (w > 0 && d > 0) {
+      document.getElementById('area').value = Math.round(w * d * 100) / 100;
+    }
+  }
+  document.getElementById('roomW').addEventListener('input', syncArea);
+  document.getElementById('roomD').addEventListener('input', syncArea);
+
+  document.getElementById('calc').addEventListener('click', function () {
+    syncArea();
+    var E = parseFloat(eEl.value);
+    var S = parseFloat(document.getElementById('area').value);
+    var U = parseFloat(document.getElementById('util').value);
+    var M = parseFloat(document.getElementById('maint').value);
+    var flux = parseFloat(document.getElementById('flux').value);
+    var err = document.getElementById('error');
+    var result = document.getElementById('result');
+    if (!(E > 0) || !(S > 0) || !(U > 0 && U <= 1) || !(M > 0 && M <= 1) || !(flux > 0)) {
+      err.style.display = 'block'; result.classList.remove('show'); return;
+    }
+    err.style.display = 'none';
+    var F = (E * S) / (U * M);
+    var raw = F / flux;
+    var N = Math.ceil(raw);
+    document.getElementById('totalFlux').textContent = Math.round(F).toLocaleString('ja-JP');
+    document.getElementById('countRaw').textContent = raw.toFixed(2);
+    document.getElementById('count').textContent = N;
+    result.classList.add('show');
+  });
+})();
+</script>
+<script src="./pwa.js"></script>
+</body>
+</html>

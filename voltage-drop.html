@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#123c5e">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="stylesheet" href="./pwa.css">
+<title>電圧降下計算（銅線・簡易式） | 電気・設備の計算ツール集</title>
+<meta name="description" content="単相2線式・三相3線式の電圧降下を簡易式で計算します。こう長・電流・電線断面積を入力するだけです。">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #1f2933; background: #f6f7f9; line-height: 1.7; }
+  header { background: #123c5e; color: #fff; padding: 28px 20px; }
+  header .wrap, main { max-width: 760px; margin: 0 auto; }
+  header a { color: #bcd6ea; font-size: .85rem; text-decoration: none; }
+  header h1 { font-size: 1.35rem; margin-top: 6px; }
+  main { padding: 24px 16px 44px; }
+  .panel { background: #fff; border: 1px solid #dde3e8; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+  .panel h2 { font-size: 1.02rem; margin-bottom: 12px; }
+  label { display: block; font-size: .88rem; font-weight: 600; margin: 14px 0 5px; }
+  label:first-of-type { margin-top: 0; }
+  input, select { width: 100%; padding: 11px; font-size: 1rem; border: 1px solid #bcccdc; border-radius: 8px; background: #fff; }
+  .unit { font-size: .8rem; color: #627d98; font-weight: 400; }
+  button { width: 100%; margin-top: 20px; background: #e07b39; color: #fff; border: none; padding: 13px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #c9662a; }
+  .result { display: none; background: #eaf4ec; border: 1px solid #9fc7a8; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .result.show { display: block; }
+  .result .big { font-size: 1.7rem; font-weight: 800; color: #14532d; }
+  .result dl { margin-top: 8px; font-size: .95rem; }
+  .result dt { display: inline; font-weight: 600; }
+  .result dd { display: inline; margin-right: 16px; }
+  .formula-box { background: #f0f4f8; border-radius: 8px; padding: 12px 14px; font-size: .92rem; margin-bottom: 10px; }
+  p, li { font-size: .9rem; color: #3e4c59; }
+  ul { padding-left: 1.2em; }
+  .note { background: #fff8e6; border: 1px solid #f0d48a; border-radius: 10px; padding: 14px 16px; font-size: .88rem; }
+  .error { color: #b42318; font-size: .88rem; margin-top: 10px; display: none; }
+  footer { text-align: center; color: #829ab1; font-size: .8rem; padding: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="./index.html">← ツール一覧へ戻る</a>
+    <h1>電圧降下計算（銅線・簡易式）</h1>
+    <button type="button" id="gloveToggle" class="glove-toggle" aria-pressed="false">🧤 手袋モード: OFF</button>
+  </div>
+</header>
+<main>
+  <div class="panel">
+    <h2>入力</h2>
+    <label for="system">配線方式</label>
+    <select id="system">
+      <option value="single" selected>単相2線式</option>
+      <option value="three">三相3線式</option>
+    </select>
+
+    <label for="length">こう長 L <span class="unit">[m]</span></label>
+    <input type="number" id="length" inputmode="decimal" min="0" step="any" value="50">
+
+    <label for="current">電流 I <span class="unit">[A]</span></label>
+    <input type="number" id="current" inputmode="decimal" min="0" step="any" value="20">
+
+    <label for="area">電線断面積 A <span class="unit">[mm²]（銅線）</span></label>
+    <select id="area">
+      <option value="2">2</option>
+      <option value="3.5">3.5</option>
+      <option value="5.5" selected>5.5</option>
+      <option value="8">8</option>
+      <option value="14">14</option>
+      <option value="22">22</option>
+      <option value="38">38</option>
+      <option value="60">60</option>
+      <option value="100">100</option>
+    </select>
+
+    <p class="voice-warning" id="voiceAreaWarning"></p>
+
+    <label for="voltage">供給電圧 <span class="unit">[V]（降下率の計算用）</span></label>
+    <input type="number" id="voltage" inputmode="decimal" min="0" step="any" value="100">
+
+    <p class="error" id="error">入力値を確認してください（0より大きい数値を入れてください）。</p>
+    <button type="button" id="voiceBtn" class="voice-btn">🎤 音声で入力</button>
+    <p class="voice-status" id="voiceStatus"></p>
+    <p class="voice-note" id="voiceNote"></p>
+    <button type="button" id="calc">計算する</button>
+  </div>
+
+  <div class="voice-confirm" id="voiceConfirm" aria-live="polite">
+    <div class="vc-title">この内容で計算しますか？</div>
+    <div class="vc-heard" id="vcHeard"></div>
+    <ul id="vcList"></ul>
+    <p class="vc-warn" id="vcWarn" style="display:none;"></p>
+    <div class="vc-actions">
+      <button type="button" id="vcOk">この内容で計算する</button>
+      <button type="button" id="vcCancel" class="vc-cancel">やり直し</button>
+    </div>
+  </div>
+
+  <div class="result" id="result" aria-live="polite">
+    <div>電圧降下</div>
+    <div class="big"><span id="drop">–</span> V</div>
+    <dl>
+      <dt>降下率：</dt><dd><span id="rate">–</span> %</dd>
+      <dt>使用した式：</dt><dd id="usedFormula">–</dd>
+    </dl>
+  </div>
+
+  <div class="panel">
+    <h2>計算式の説明</h2>
+    <div class="formula-box">単相2線式： e = (35.6 × L × I) / (1000 × A) [V]</div>
+    <div class="formula-box">三相3線式： e = (30.8 × L × I) / (1000 × A) [V]</div>
+    <ul>
+      <li>e：電圧降下 [V]、L：こう長 [m]、I：電流 [A]、A：電線の断面積 [mm²]</li>
+      <li>係数 35.6 / 30.8 は、銅線の抵抗率などをもとにした簡易式の定数です（力率1に近い条件など前提を含む概算式です）。</li>
+      <li>降下率 [%] = e ÷ 供給電圧 × 100 で求めます。</li>
+      <li>一般に、電圧降下は幹線・分岐回路ごとに目安（例：合計で数％以内）が規格類で示されますが、条件により異なります。</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <strong>ご注意：</strong>これは<strong>参考計算</strong>です。実務は最新の規格・メーカー資料で確認してください。実際の電圧降下は、電線の種類・温度、力率、配線方法などでも変わります。
+  </div>
+</main>
+<footer>参考計算です。実務は最新の規格・メーカー資料で確認してください。</footer>
+<script>
+(function () {
+  var systemEl = document.getElementById('system');
+  var voltageEl = document.getElementById('voltage');
+  // 既定の供給電圧: 単相=100V / 三相=200V（配線方式に合わせて自動設定、手入力で変更可）
+  systemEl.addEventListener('change', function () {
+    voltageEl.value = systemEl.value === 'three' ? 200 : 100;
+  });
+  document.getElementById('calc').addEventListener('click', function () {
+    var isThree = systemEl.value === 'three';
+    var L = parseFloat(document.getElementById('length').value);
+    var I = parseFloat(document.getElementById('current').value);
+    var A = parseFloat(document.getElementById('area').value);
+    var V = parseFloat(voltageEl.value);
+    var err = document.getElementById('error');
+    var result = document.getElementById('result');
+    if (!(L > 0) || !(I > 0) || !(A > 0) || !(V > 0)) {
+      err.style.display = 'block'; result.classList.remove('show'); return;
+    }
+    err.style.display = 'none';
+    var coef = isThree ? 30.8 : 35.6;
+    var e = (coef * L * I) / (1000 * A);
+    var rate = (e / V) * 100;
+    document.getElementById('drop').textContent = e.toFixed(2);
+    document.getElementById('rate').textContent = rate.toFixed(2);
+    document.getElementById('usedFormula').textContent =
+      (isThree ? '三相3線式 e = (30.8 × L × I) / (1000 × A)' : '単相2線式 e = (35.6 × L × I) / (1000 × A)');
+    result.classList.add('show');
+  });
+})();
+</script>
+<script src="./pwa.js"></script>
+<script src="./voice-parse.js"></script>
+<script src="./voice.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#123c5e">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="stylesheet" href="./pwa.css">
+<title>電気・設備の計算ツール集 | 電圧降下・コンデンサ容量・照度</title>
+<meta name="description" content="電圧降下、力率改善コンデンサ容量、照度（ルーメン法）の参考計算ができる無料ツール集です。">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #1f2933; background: #f6f7f9; line-height: 1.7; }
+  header { background: #123c5e; color: #fff; padding: 40px 20px 32px; text-align: center; }
+  header h1 { font-size: 1.55rem; margin-bottom: 8px; }
+  header p { opacity: .9; font-size: .92rem; }
+  main { max-width: 920px; margin: 0 auto; padding: 28px 16px 48px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #fff; border: 1px solid #dde3e8; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; }
+  .card .tag { display: inline-block; align-self: flex-start; font-size: .72rem; background: #e8f0f7; color: #123c5e; border-radius: 999px; padding: 2px 10px; margin-bottom: 10px; }
+  .card h2 { font-size: 1.12rem; margin-bottom: 8px; }
+  .card p { font-size: .9rem; color: #52606d; flex: 1; }
+  .card .formula { font-size: .82rem; background: #f6f7f9; border-radius: 8px; padding: 8px 10px; margin: 12px 0; color: #334e68; }
+  .card a.btn { display: block; text-align: center; background: #e07b39; color: #fff; text-decoration: none; padding: 11px; border-radius: 8px; font-weight: 600; }
+  .card a.btn:hover { background: #c9662a; }
+  .ad-slot, .aff-slot { border: 2px dashed #b6c2cc; border-radius: 12px; background: #eef1f4; color: #7b8794; text-align: center; padding: 28px 16px; margin-bottom: 24px; font-size: .9rem; }
+  .aff-slot { background: #fdf6ec; border-color: #e3cfa8; color: #8a6d3b; }
+  .aff-slot strong { display: block; font-size: 1rem; margin-bottom: 6px; color: #6b5322; }
+  .note { background: #fff8e6; border: 1px solid #f0d48a; border-radius: 10px; padding: 14px 16px; font-size: .88rem; margin-bottom: 24px; }
+  section.about { background: #fff; border: 1px solid #dde3e8; border-radius: 12px; padding: 22px; margin-bottom: 24px; }
+  section.about h2 { font-size: 1.05rem; margin-bottom: 8px; }
+  section.about p, section.about li { font-size: .9rem; color: #3e4c59; }
+  section.about ul { padding-left: 1.2em; }
+  footer { text-align: center; color: #829ab1; font-size: .8rem; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>電気・設備の計算ツール集</h1>
+  <p>電圧降下 / 力率改善コンデンサ容量 / 照度（ルーメン法）<br>入力するだけですぐ計算できる、参考計算ツールです。</p>
+    <button type="button" id="gloveToggle" class="glove-toggle" aria-pressed="false">🧤 手袋モード: OFF</button>
+</header>
+<main>
+  <div class="ad-slot" aria-label="広告枠">広告枠</div>
+
+  <div class="grid">
+    <div class="card">
+      <span class="tag">配線計算</span>
+      <h2>電圧降下計算（銅線・簡易式）</h2>
+      <p>こう長・電流・電線断面積から、単相2線式／三相3線式の電圧降下と降下率を求めます。電線サイズ選定の目安に。</p>
+      <div class="formula">単相: e = 35.6×L×I / (1000×A)　三相: e = 30.8×L×I / (1000×A)</div>
+      <a class="btn" href="./voltage-drop.html">計算する</a>
+    </div>
+    <div class="card">
+      <span class="tag">力率改善</span>
+      <h2>力率改善コンデンサ容量計算</h2>
+      <p>負荷容量と現在・目標の力率から、必要な進相コンデンサ容量（kvar）と、5 kvar刻みの推奨値を求めます。</p>
+      <div class="formula">Qc = P × (tanθ1 − tanθ2)</div>
+      <a class="btn" href="./capacitor.html">計算する</a>
+    </div>
+    <div class="card">
+      <span class="tag">照明計算</span>
+      <h2>照度計算（ルーメン法）</h2>
+      <p>目標照度と床面積から、必要な総光束とLED照明の必要台数を求めます。事務所・教室・倉庫などの目安に。</p>
+      <div class="formula">必要光束 F = (E × S) / (U × M)</div>
+      <a class="btn" href="./illuminance.html">計算する</a>
+    </div>
+  </div>
+
+  <div class="aff-slot" aria-label="書籍枠">
+    <strong>工具・資格対策の書籍枠</strong>
+    電気工事・電気設備の実務書や、電気工事士・電験などの資格対策書籍を紹介する想定の枠です（準備中）。
+  </div>
+
+  <div class="note">
+    <strong>ご注意：</strong>本サイトの計算はすべて<strong>参考計算</strong>です。実際の設計・施工にあたっては、最新の規格（内線規程等）やメーカー資料、使用する機器の仕様で必ず確認してください。
+  </div>
+
+  <section class="about">
+    <h2>このツール集について</h2>
+    <p>電気設備の検討初期に「だいたいの目安をすぐ知りたい」という場面向けに、代表的な簡易式だけを集めた静的ツールです。</p>
+    <ul>
+      <li>電圧降下：銅線を前提とした簡易式（単相2線式／三相3線式）</li>
+      <li>コンデンサ容量：力率の改善前後から必要容量（kvar）を算出</li>
+      <li>照度：ルーメン法による必要光束と照明台数の目安</li>
+    </ul>
+    <p>参考計算です。実務は最新の規格・メーカー資料で確認してください。</p>
+  </section>
+</main>
+<footer>電気・設備の計算ツール集（試作版）</footer>
+<script src="./pwa.js"></script>
+</body>
+</html>

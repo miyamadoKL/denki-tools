@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#123c5e">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="stylesheet" href="./pwa.css">
+<title>力率改善コンデンサ容量計算 | 電気・設備の計算ツール集</title>
+<meta name="description" content="負荷容量と現在・目標の力率から、力率改善に必要な進相コンデンサ容量（kvar）を計算します。">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; color: #1f2933; background: #f6f7f9; line-height: 1.7; }
+  header { background: #123c5e; color: #fff; padding: 28px 20px; }
+  header .wrap, main { max-width: 760px; margin: 0 auto; }
+  header a { color: #bcd6ea; font-size: .85rem; text-decoration: none; }
+  header h1 { font-size: 1.35rem; margin-top: 6px; }
+  main { padding: 24px 16px 44px; }
+  .panel { background: #fff; border: 1px solid #dde3e8; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+  .panel h2 { font-size: 1.02rem; margin-bottom: 12px; }
+  label { display: block; font-size: .88rem; font-weight: 600; margin: 14px 0 5px; }
+  label:first-of-type { margin-top: 0; }
+  input { width: 100%; padding: 11px; font-size: 1rem; border: 1px solid #bcccdc; border-radius: 8px; }
+  .unit { font-size: .8rem; color: #627d98; font-weight: 400; }
+  button { width: 100%; margin-top: 20px; background: #e07b39; color: #fff; border: none; padding: 13px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #c9662a; }
+  .result { display: none; background: #eaf4ec; border: 1px solid #9fc7a8; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .result.show { display: block; }
+  .result .big { font-size: 1.7rem; font-weight: 800; color: #14532d; }
+  .result dl { margin-top: 8px; font-size: .95rem; }
+  .result dt { display: inline; font-weight: 600; }
+  .result dd { display: inline; margin-right: 16px; }
+  .formula-box { background: #f0f4f8; border-radius: 8px; padding: 12px 14px; font-size: .92rem; margin-bottom: 10px; }
+  p, li { font-size: .9rem; color: #3e4c59; }
+  ul { padding-left: 1.2em; }
+  .note { background: #fff8e6; border: 1px solid #f0d48a; border-radius: 10px; padding: 14px 16px; font-size: .88rem; }
+  .error { color: #b42318; font-size: .88rem; margin-top: 10px; display: none; }
+  footer { text-align: center; color: #829ab1; font-size: .8rem; padding: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="./index.html">← ツール一覧へ戻る</a>
+    <h1>力率改善コンデンサ容量計算</h1>
+    <button type="button" id="gloveToggle" class="glove-toggle" aria-pressed="false">🧤 手袋モード: OFF</button>
+  </div>
+</header>
+<main>
+  <div class="panel">
+    <h2>入力</h2>
+    <label for="power">負荷 P <span class="unit">[kW]</span></label>
+    <input type="number" id="power" inputmode="decimal" min="0" step="any" value="100">
+
+    <label for="cos1">現在の力率 cosθ1 <span class="unit">（例：0.8）</span></label>
+    <input type="number" id="cos1" inputmode="decimal" min="0" max="1" step="any" value="0.8">
+
+    <label for="cos2">目標の力率 cosθ2 <span class="unit">（例：0.95）</span></label>
+    <input type="number" id="cos2" inputmode="decimal" min="0" max="1" step="any" value="0.95">
+
+    <p class="error" id="error">入力値を確認してください（Pは0より大きく、力率は0より大きく1以下にしてください）。</p>
+    <button type="button" id="calc">計算する</button>
+  </div>
+
+  <div class="result" id="result" aria-live="polite">
+    <div>必要なコンデンサ容量</div>
+    <div class="big"><span id="qc">–</span> kvar</div>
+    <dl>
+      <dt>推奨容量（5 kvar刻みに切り上げ）：</dt><dd><span id="rec">–</span> kvar</dd>
+    </dl>
+    <dl>
+      <dt>tanθ1：</dt><dd id="tan1">–</dd>
+      <dt>tanθ2：</dt><dd id="tan2">–</dd>
+    </dl>
+    <p id="noNeed" style="display:none;">目標力率が現在の力率以下のため、追加のコンデンサは不要な計算結果です（容量0として表示しています）。</p>
+  </div>
+
+  <div class="panel">
+    <h2>計算式の説明</h2>
+    <div class="formula-box">Qc = P × (tanθ1 − tanθ2) [kvar]</div>
+    <div class="formula-box">tanθ = √(1 − cos²θ) / cosθ</div>
+    <ul>
+      <li>Qc：必要な進相コンデンサ容量 [kvar]、P：負荷の有効電力 [kW]</li>
+      <li>cosθ1：改善前の力率、cosθ2：目標（改善後）の力率</li>
+      <li>力率を改善すると無効電力が減り、同じ有効電力でも電流が小さくなります。これがコンデンサ容量の目安になります。</li>
+      <li>実際の製品容量は離散的なため、ここでは計算結果を 5 kvar 刻みに切り上げた値を「推奨値の目安」として表示しています。実際の選定単位はメーカー仕様によります。</li>
+      <li>進み力率（過補償）にならないよう、負荷変動が大きい場合は自動力率調整（APFC）などの検討も必要です。</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <strong>ご注意：</strong>これは<strong>参考計算</strong>です。実務は最新の規格・メーカー資料で確認してください。実際のコンデンサ選定では、受電方式、単機容量の組み合わせ、高調波対策（直列リアクトル）なども考慮が必要です。
+  </div>
+</main>
+<footer>参考計算です。実務は最新の規格・メーカー資料で確認してください。</footer>
+<script>
+(function () {
+  function tanFromCos(cos) { return Math.sqrt(1 - cos * cos) / cos; }
+  document.getElementById('calc').addEventListener('click', function () {
+    var P = parseFloat(document.getElementById('power').value);
+    var c1 = parseFloat(document.getElementById('cos1').value);
+    var c2 = parseFloat(document.getElementById('cos2').value);
+    var err = document.getElementById('error');
+    var result = document.getElementById('result');
+    if (!(P > 0) || !(c1 > 0 && c1 <= 1) || !(c2 > 0 && c2 <= 1)) {
+      err.style.display = 'block'; result.classList.remove('show'); return;
+    }
+    err.style.display = 'none';
+    var t1 = tanFromCos(c1), t2 = tanFromCos(c2);
+    var qc = P * (t1 - t2);
+    var noNeed = qc < 0;
+    if (noNeed) qc = 0;
+    var rec = Math.ceil(qc / 5) * 5;
+    document.getElementById('qc').textContent = qc.toFixed(1);
+    document.getElementById('rec').textContent = rec;
+    document.getElementById('tan1').textContent = t1.toFixed(4);
+    document.getElementById('tan2').textContent = t2.toFixed(4);
+    document.getElementById('noNeed').style.display = noNeed ? 'block' : 'none';
+    result.classList.add('show');
+  });
+})();
+</script>
+<script src="./pwa.js"></script>
+</body>
+</html>
